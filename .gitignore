@@ -30,3 +30,14 @@ db.sqlite
 .env.test.local
 .env.production.local
 
+# Presentation Guides & Debug Scripts
+PRESENTATION_GUIDE.md
+presentation_guide.md
+check_db.js
+check_db.cjs
+inspect.cjs
+test_propose.js
+test_propose.cjs
+db_inspection.txt
+output.txt
+
