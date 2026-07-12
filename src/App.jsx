@@ -594,6 +594,7 @@ export default function App() {
               approveCsrActivity={approveCsrActivity}
               joinCsrActivity={joinCsrActivity}
               setActiveTab={setActiveTab}
+              policyAcknowledgements={policyAcknowledgements}
             />
           )}
 

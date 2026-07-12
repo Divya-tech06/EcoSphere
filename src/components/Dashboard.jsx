@@ -47,7 +47,8 @@ export default function Dashboard({
   csrActivities = [],
   approveCsrActivity,
   joinCsrActivity,
-  setActiveTab
+  setActiveTab,
+  policyAcknowledgements = []
 }) {
   const CsrQuickWidget = () => {
     // Show only the 3 most recent active/pending activities

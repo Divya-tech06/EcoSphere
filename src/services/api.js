@@ -1,4 +1,4 @@
-const BASE_URL = 'http://localhost:5001/api';
+const BASE_URL = 'http://127.0.0.1:5001/api';
 
 // Fetch Headers builder
 const getHeaders = (username, role) => {

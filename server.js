@@ -1139,6 +1139,7 @@ app.post('/api/emissions/reject', requireAuth, requireManager, async (req, res) 
 // Propose CSR activity
 app.post('/api/csr/propose', requireAuth, async (req, res) => {
   const actData = req.body;
+  console.log('>>> Propose CSR req.body:', actData);
   try {
     // Audits and validation rules
     if (!actData.title || actData.title.trim().length < 5) {
@@ -1146,9 +1147,17 @@ app.post('/api/csr/propose', requireAuth, async (req, res) => {
     }
 
     // Convert participants array to comma-separated string if needed
+    console.log('>>> Before conversion, participants type:', typeof actData.participants, 'isArray:', Array.isArray(actData.participants));
     if (Array.isArray(actData.participants)) {
       actData.participants = actData.participants.join(',');
+    } else if (actData.participants && typeof actData.participants === 'object') {
+      actData.participants = Object.values(actData.participants).join(',');
+    } else if (actData.participants === undefined || actData.participants === null) {
+      actData.participants = '';
+    } else {
+      actData.participants = String(actData.participants);
     }
+    console.log('>>> After conversion, participants value:', JSON.stringify(actData.participants));
 
     await DB.CsrActivity.create(actData);
     await logAction(
@@ -1159,6 +1168,7 @@ app.post('/api/csr/propose', requireAuth, async (req, res) => {
     );
     res.json({ success: true });
   } catch (err) {
+    console.error('PROPOSE ERROR:', err);
     res.status(500).json({ error: err.message });
   }
 });

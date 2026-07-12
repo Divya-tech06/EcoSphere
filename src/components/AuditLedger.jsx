@@ -1,6 +1,21 @@
 import React, { useState } from 'react';
 import { Shield, Search, Calendar, FileCheck, User } from 'lucide-react';
 
+const getRoleBadgeStyle = (role) => {
+  switch (role) {
+    case 'Admin':
+      return 'bg-rose-100 text-rose-800 dark:bg-rose-950/20 dark:text-rose-400 border border-rose-200/50 dark:border-rose-900/30';
+    case 'Manager':
+      return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/20 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-900/30';
+    case 'Compliance Officer':
+      return 'bg-purple-100 text-purple-800 dark:bg-purple-950/20 dark:text-purple-400 border border-purple-200/50 dark:border-purple-900/30';
+    case 'Employee':
+      return 'bg-blue-100 text-blue-800 dark:bg-blue-950/20 dark:text-blue-400 border border-blue-200/50 dark:border-blue-900/30';
+    default:
+      return 'bg-slate-100 text-slate-750 dark:bg-slate-900/30 dark:text-slate-400 border border-slate-200/50 dark:border-slate-800/30';
+  }
+};
+
 export default function AuditLedger({ auditLogs }) {
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -81,11 +96,7 @@ export default function AuditLedger({ auditLogs }) {
                       </div>
                     </td>
                     <td className="p-3">
-                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
-                        log.role === 'Manager' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-450' :
-                        log.role === 'System' ? 'bg-purple-100 text-purple-800 dark:bg-purple-950/30 dark:text-purple-450' :
-                        'bg-slate-100 text-slate-750 dark:bg-slate-850 dark:text-slate-400'
-                      }`}>
+                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${getRoleBadgeStyle(log.role)}`}>
                         {log.role}
                       </span>
                     </td>
