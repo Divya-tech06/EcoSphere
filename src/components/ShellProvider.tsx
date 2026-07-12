@@ -1,12 +1,21 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { navigationConfig, SidebarGroup, SidebarItem } from "@/lib/navigation";
+import { navigationConfig } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
-import { ChevronLeft, ChevronRight, Menu, LogOut, User } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogOut, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useSession, signOut } from "next-auth/react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const SidebarContext = createContext<{
   collapsed: boolean;
@@ -15,14 +24,18 @@ const SidebarContext = createContext<{
 
 export function ShellProvider({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
+  const { data: session } = useSession();
+
+  // Do not render shell wrapper on login page
+  const pathname = usePathname();
+  if (pathname === "/login") {
+    return <>{children}</>;
+  }
 
   return (
     <SidebarContext.Provider value={{ collapsed, setCollapsed }}>
       <div className="flex min-h-screen bg-[#0d0d0d] text-foreground font-sans">
-        {/* Sidebar Container */}
         <Sidebar />
-        
-        {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-w-0">
           <TopNavBar />
           <main className="flex-1 p-6 overflow-y-auto">
@@ -37,11 +50,8 @@ export function ShellProvider({ children }: { children: React.ReactNode }) {
 function Sidebar() {
   const { collapsed, setCollapsed } = useContext(SidebarContext);
   const pathname = usePathname();
-
-  // Find active group
-  const activeGroup = navigationConfig.find(
-    (g) => pathname === g.href || pathname.startsWith(g.href + "/")
-  );
+  const { data: session } = useSession();
+  const userRole = (session?.user as any)?.role || "EMPLOYEE";
 
   return (
     <aside
@@ -50,7 +60,6 @@ function Sidebar() {
         collapsed ? "w-16" : "w-64"
       )}
     >
-      {/* Sidebar Header */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-white/10">
         {!collapsed && (
           <Link href="/dashboard" className="flex items-center gap-2 font-bold text-xl tracking-tight text-white">
@@ -68,15 +77,18 @@ function Sidebar() {
         </Button>
       </div>
 
-      {/* Navigation Groups */}
       <div className="flex-1 overflow-y-auto py-4 space-y-6 px-3">
         {navigationConfig.map((group) => {
+          // Hide settings module for non-admins
+          if (group.name === "Settings" && userRole !== "ADMIN") {
+            return null;
+          }
+
           const isGroupActive = pathname === group.href || pathname.startsWith(group.href + "/");
           const GroupIcon = group.icon;
 
           return (
             <div key={group.name} className="space-y-1">
-              {/* Group Trigger / Title */}
               <Link
                 href={group.items.length > 0 ? group.items[0].href : group.href}
                 className={cn(
@@ -96,7 +108,6 @@ function Sidebar() {
                 {!collapsed && <span>{group.name}</span>}
               </Link>
 
-              {/* Sub-items (only if not collapsed) */}
               {!collapsed && group.items.length > 0 && isGroupActive && (
                 <div className="ml-4 pl-4 border-l border-white/5 space-y-1 mt-1">
                   {group.items.map((subItem) => {
@@ -130,75 +141,67 @@ function Sidebar() {
         })}
       </div>
 
-      {/* Sidebar Footer User Info */}
-      <div className="p-4 border-t border-white/10 flex items-center gap-3">
-        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold text-sm shrink-0">
-          A
-        </div>
-        {!collapsed && (
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-white truncate">Administrator</p>
-            <p className="text-[10px] text-gray-400 truncate">admin@ecosphere.local</p>
+      {session?.user && (
+        <div className="p-4 border-t border-white/10 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center text-white font-semibold text-sm shrink-0">
+            {session.user.name?.[0] || session.user.email?.[0].toUpperCase()}
           </div>
-        )}
-      </div>
+          {!collapsed && (
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold text-white truncate">{session.user.name}</p>
+              <p className="text-[10px] text-gray-400 truncate uppercase tracking-wider font-bold">
+                {userRole}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
     </aside>
   );
 }
 
 function TopNavBar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const userRole = (session?.user as any)?.role || "EMPLOYEE";
 
-  // Find active group for the top tabs
   const activeGroup = navigationConfig.find(
     (g) => pathname === g.href || pathname.startsWith(g.href + "/")
   ) || navigationConfig[0];
 
-  // Helper mapping for accent colors
   const getAccentBorderClass = (groupName: string) => {
     switch (groupName) {
-      case "Environmental":
-        return "border-green-500 text-green-500";
-      case "Social":
-        return "border-blue-500 text-blue-500";
-      case "Governance":
-        return "border-purple-500 text-purple-500";
-      case "Gamification":
-        return "border-orange-500 text-orange-500";
-      case "Dashboard":
-        return "border-blue-400 text-blue-400";
-      case "Reports":
-        return "border-amber-500 text-amber-500";
-      default:
-        return "border-white text-white";
+      case "Environmental": return "border-green-500 text-green-500";
+      case "Social": return "border-blue-500 text-blue-500";
+      case "Governance": return "border-purple-500 text-purple-500";
+      case "Gamification": return "border-orange-500 text-orange-500";
+      case "Dashboard": return "border-blue-400 text-blue-400";
+      case "Reports": return "border-amber-500 text-amber-500";
+      default: return "border-white text-white";
     }
   };
 
   const getAccentBgClass = (groupName: string) => {
     switch (groupName) {
-      case "Environmental":
-        return "bg-green-500/20 text-green-400 border border-green-500/30";
-      case "Social":
-        return "bg-blue-500/20 text-blue-400 border border-blue-500/30";
-      case "Governance":
-        return "bg-purple-500/20 text-purple-400 border border-purple-500/30";
-      case "Gamification":
-        return "bg-orange-500/20 text-orange-400 border border-orange-500/30";
-      case "Dashboard":
-        return "bg-blue-400/20 text-blue-300 border border-blue-400/30";
-      case "Reports":
-        return "bg-amber-500/20 text-amber-400 border border-amber-500/30";
-      default:
-        return "bg-white/10 text-white";
+      case "Environmental": return "bg-green-500/20 text-green-400 border border-green-500/30";
+      case "Social": return "bg-blue-500/20 text-blue-400 border border-blue-500/30";
+      case "Governance": return "bg-purple-500/20 text-purple-400 border border-purple-500/30";
+      case "Gamification": return "bg-orange-500/20 text-orange-400 border border-orange-500/30";
+      case "Dashboard": return "bg-blue-400/20 text-blue-300 border border-blue-400/30";
+      case "Reports": return "bg-amber-500/20 text-amber-400 border border-amber-500/30";
+      default: return "bg-white/10 text-white";
     }
   };
 
   return (
     <header className="bg-[#141414] border-b border-white/10 flex flex-col z-10 shrink-0">
-      {/* Row 1: Top Level Module Tabs */}
       <div className="flex items-center justify-between px-6 h-14 border-b border-white/5">
         <nav className="flex space-x-6 h-full items-end">
           {navigationConfig.map((group) => {
+            if (group.name === "Settings" && userRole !== "ADMIN") {
+              return null;
+            }
+
             const isGroupActive = pathname === group.href || pathname.startsWith(group.href + "/");
             const targetHref = group.items.length > 0 ? group.items[0].href : group.href;
 
@@ -219,15 +222,46 @@ function TopNavBar() {
           })}
         </nav>
 
-        {/* Top-Right Quick actions / User */}
+        {/* User drop menu */}
         <div className="flex items-center gap-4">
-          <span className="text-xs text-gray-400 bg-white/5 px-2.5 py-1 rounded border border-white/10">
-            Local DB Mode
-          </span>
+          <DropdownMenu>
+            <DropdownMenuTrigger className="flex items-center gap-2 hover:bg-white/5 px-3 py-1.5 rounded-lg border border-white/10 transition-colors">
+              <span className="w-5 h-5 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center text-xs font-bold uppercase">
+                {session?.user?.name?.[0] || "U"}
+              </span>
+              <span className="text-xs text-white hidden md:inline font-medium">
+                {session?.user?.name || session?.user?.email}
+              </span>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-[#141414] border border-white/10 text-white w-56">
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-semibold">{session?.user?.name}</p>
+                  <p className="text-xs text-gray-400 truncate">{session?.user?.email}</p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator className="bg-white/10" />
+              <DropdownMenuItem className="text-xs focus:bg-white/5 cursor-pointer">
+                Role: <span className="text-green-400 font-bold ml-1">{userRole}</span>
+              </DropdownMenuItem>
+              {userRole === "APPROVER" && (
+                <DropdownMenuItem className="text-xs text-blue-400 focus:bg-white/5 cursor-pointer">
+                  Approval Queue Access Active
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator className="bg-white/10" />
+              <DropdownMenuItem
+                onClick={() => signOut({ callbackUrl: "/login" })}
+                className="text-xs text-red-400 focus:bg-white/5 cursor-pointer flex items-center gap-2"
+              >
+                <LogOut size={14} />
+                <span>Log Out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
-      {/* Row 2: Module Sub-tabs (Second Level Sections) */}
       {activeGroup.items.length > 0 && (
         <div className="flex items-center px-6 h-12 bg-[#181818]/60 overflow-x-auto gap-2">
           {activeGroup.items.map((subItem) => {

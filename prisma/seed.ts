@@ -1,4 +1,5 @@
 import { PrismaClient, Role, GoalStatus, CarbonSourceType, ApprovalStatus, ChallengeDifficulty, ChallengeStatus, ComplianceSeverity, ComplianceStatus, User } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -107,8 +108,8 @@ async function main() {
     },
   });
 
-  // 4. Users (10+ employees across all roles)
-  const passwordHash = "dummy-hash-for-now";
+  // 4. Users (with bcrypt hashed password "password")
+  const passwordHash = await bcrypt.hash("password", 10);
 
   // Admins
   const admin1 = await prisma.user.upsert({
@@ -180,6 +181,8 @@ async function main() {
   console.log("Users seeded.");
 
   // 5. Emission Factors
+  // Delete existing factors first or upsert to avoid duplicates
+  await prisma.emissionFactor.deleteMany({});
   const efElectricity = await prisma.emissionFactor.create({
     data: {
       name: "Grid Electricity (USA average)",
@@ -210,6 +213,7 @@ async function main() {
   console.log("Emission Factors seeded.");
 
   // 6. Environmental Goals (3+ across different statuses)
+  await prisma.environmentalGoal.deleteMany({});
   await prisma.environmentalGoal.createMany({
     data: [
       {
@@ -242,6 +246,7 @@ async function main() {
   console.log("Environmental Goals seeded.");
 
   // 7. CSR Activities (4+)
+  await prisma.cSRActivity.deleteMany({});
   const csrForest = await prisma.cSRActivity.create({
     data: {
       title: "Annual City Forest Reforestation Day",
@@ -289,6 +294,7 @@ async function main() {
   console.log("CSR Activities seeded.");
 
   // 8. Employee Participations with mixed approval statuses
+  await prisma.employeeParticipation.deleteMany({});
   await prisma.employeeParticipation.createMany({
     data: [
       {
@@ -319,6 +325,7 @@ async function main() {
   console.log("CSR participations seeded.");
 
   // 9. Challenges (3+ spanning different lifecycle stages)
+  await prisma.challenge.deleteMany({});
   const chalZero = await prisma.challenge.create({
     data: {
       title: "Zero Waste Coffee Month",
@@ -374,6 +381,7 @@ async function main() {
   console.log("Challenges seeded.");
 
   // 10. Challenge Participations
+  await prisma.challengeParticipation.deleteMany({});
   await prisma.challengeParticipation.createMany({
     data: [
       {
@@ -398,6 +406,7 @@ async function main() {
   console.log("Challenge participations seeded.");
 
   // 11. Badges (4+ with varying rules)
+  await prisma.badge.deleteMany({});
   await prisma.badge.createMany({
     data: [
       {
@@ -430,6 +439,7 @@ async function main() {
   console.log("Badges seeded.");
 
   // 12. Rewards (3+)
+  await prisma.reward.deleteMany({});
   await prisma.reward.createMany({
     data: [
       {
@@ -459,6 +469,7 @@ async function main() {
   console.log("Rewards seeded.");
 
   // 13. ESG Policies & Policy Acknowledgements
+  await prisma.eSGPolicy.deleteMany({});
   const policyCode = await prisma.eSGPolicy.create({
     data: {
       title: "Supplier Code of Sustainability Conduct",
@@ -481,6 +492,7 @@ async function main() {
     },
   });
 
+  await prisma.policyAcknowledgement.deleteMany({});
   await prisma.policyAcknowledgement.createMany({
     data: [
       {
@@ -501,6 +513,7 @@ async function main() {
   console.log("Policies seeded.");
 
   // 14. Audits (2+)
+  await prisma.audit.deleteMany({});
   const audit1 = await prisma.audit.create({
     data: {
       title: "Q1 Facilities Carbon Footprint Review",
@@ -526,6 +539,7 @@ async function main() {
   console.log("Audits seeded.");
 
   // 15. Compliance Issues (a few, including at least one overdue Open one)
+  await prisma.complianceIssue.deleteMany({});
   await prisma.complianceIssue.createMany({
     data: [
       {
@@ -565,6 +579,7 @@ async function main() {
   console.log("Compliance Issues seeded.");
 
   // 16. Carbon Transactions
+  await prisma.carbonTransaction.deleteMany({});
   await prisma.carbonTransaction.createMany({
     data: [
       {
@@ -591,6 +606,7 @@ async function main() {
   });
 
   // 17. Department Scores
+  await prisma.departmentScore.deleteMany({});
   await prisma.departmentScore.createMany({
     data: [
       {
