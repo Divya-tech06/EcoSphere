@@ -1144,12 +1144,41 @@ app.post('/api/csr/propose', requireAuth, async (req, res) => {
     if (!actData.title || actData.title.trim().length < 5) {
       return res.status(400).json({ error: 'Please enter a valid activity title.' });
     }
+
+    // Convert participants array to comma-separated string if needed
+    if (Array.isArray(actData.participants)) {
+      actData.participants = actData.participants.join(',');
+    }
+
     await DB.CsrActivity.create(actData);
     await logAction(
       req.auth.user.username,
       req.auth.user.role,
       'CSR Proposed',
       `Proposed activity '${actData.title}' worth ${actData.xpValue} XP.`
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Upload proof/evidence for CSR activity
+app.post('/api/csr/evidence', requireAuth, async (req, res) => {
+  const { activityId, fileName } = req.body;
+  try {
+    const act = await DB.CsrActivity.findByPk(activityId);
+    if (!act) return res.status(404).json({ error: 'CSR activity not found.' });
+
+    act.evidenceFileAttached = true;
+    act.evidenceFileName = fileName;
+    await act.save();
+
+    await logAction(
+      req.auth.user.username,
+      req.auth.user.role,
+      'CSR Evidence Uploaded',
+      `Uploaded proof file '${fileName}' for CSR activity '${act.title}'`
     );
     res.json({ success: true });
   } catch (err) {

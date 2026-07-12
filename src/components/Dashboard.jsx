@@ -24,7 +24,9 @@ import {
   XCircle,
   FileText,
   Link,
-  ShieldCheck
+  ShieldCheck,
+  Users,
+  Calendar
 } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -41,8 +43,123 @@ export default function Dashboard({
   addToast,
   auditLogs = [],
   complianceIssues = [],
-  databaseDriver = 'mongodb'
+  databaseDriver = 'mongodb',
+  csrActivities = [],
+  approveCsrActivity,
+  joinCsrActivity,
+  setActiveTab
 }) {
+  const CsrQuickWidget = () => {
+    // Show only the 3 most recent active/pending activities
+    const recentActivities = (csrActivities || []).slice(0, 3);
+
+    return (
+      <div className="glass-panel rounded-2xl p-6 space-y-4">
+        <div className="flex justify-between items-center">
+          <h2 className="text-base font-extrabold font-outfit text-slate-100 flex items-center gap-2">
+            <Users className="w-5 h-5 text-emerald-500" /> CSR Initiatives & Social Action
+          </h2>
+          <button 
+            onClick={() => setActiveTab('social')}
+            className="text-[10px] text-emerald-450 hover:underline flex items-center gap-0.5 font-bold cursor-pointer"
+          >
+            Go to CSR Hub <ChevronRight className="w-3 h-3" />
+          </button>
+        </div>
+        <p className="text-xs text-slate-400">
+          Engage in community-driven environmental actions, collaborate on social governance, and verify sustainability impact.
+        </p>
+
+        <div className="space-y-3 pt-2">
+          {recentActivities.map((act) => {
+            const isParticipant = (act.participants || []).includes(currentUser);
+            const approvalBlocked = settings.evidenceRequirement && !act.evidenceFileAttached;
+            
+            return (
+              <div 
+                key={act.id || act._id} 
+                className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-slate-900/60 border border-white/5 rounded-xl gap-3 hover:border-white/10 transition-colors"
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <strong className="text-xs text-slate-200">{act.title}</strong>
+                    <span className={`text-[8px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                      act.status === 'Approved' ? 'bg-emerald-500/10 text-emerald-450' : 
+                      act.status === 'Rejected' ? 'bg-rose-500/10 text-rose-450' : 'bg-amber-500/10 text-amber-500'
+                    }`}>
+                      {act.status}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 line-clamp-1">{act.description}</p>
+                  
+                  <div className="flex items-center gap-3 pt-1 text-[9px] text-slate-450 font-mono">
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-3 h-3 text-slate-500" /> {act.date}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Award className="w-3 h-3 text-amber-500" /> +{act.pointsValue} Pts / +{act.xpValue} XP
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Users className="w-3 h-3 text-slate-500" /> {(act.participants || []).length} / {act.maxParticipants} Joined
+                    </span>
+                  </div>
+                </div>
+
+                {/* Inline Actions */}
+                <div className="flex items-center gap-2 sm:self-center">
+                  {act.status === 'Pending' && !isParticipant && (act.participants || []).length < act.maxParticipants && currentRole === 'Employee' && (
+                    <button
+                      onClick={() => {
+                        joinCsrActivity(act.id, currentUser);
+                        addToast('success', 'Joined Activity', `You joined "${act.title}"!`);
+                      }}
+                      className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[10px] font-bold transition-all shadow-sm cursor-pointer"
+                    >
+                      Join Team
+                    </button>
+                  )}
+
+                  {act.status === 'Pending' && (currentRole === 'Manager' || currentRole === 'Admin') && (
+                    <button
+                      onClick={() => {
+                        if (approvalBlocked) {
+                          addToast('warning', 'Action Blocked', 'This activity requires uploaded proof/evidence before approval.');
+                        } else {
+                          approveCsrActivity(act.id);
+                        }
+                      }}
+                      disabled={approvalBlocked}
+                      className={`px-2.5 py-1 rounded text-[10px] font-bold transition-all ${
+                        approvalBlocked
+                          ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-white/5'
+                          : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm cursor-pointer'
+                      }`}
+                      title={approvalBlocked ? "Requires evidence uploaded by employees" : "Approve this CSR activity"}
+                    >
+                      Approve
+                    </button>
+                  )}
+                  
+                  {isParticipant && currentRole === 'Employee' && (
+                    <span className="text-[9px] text-emerald-450 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/10">
+                      Enrolled
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+
+          {recentActivities.length === 0 && (
+            <div className="text-center p-6 bg-slate-900/40 rounded-xl border border-white/5 text-slate-500 italic text-xs">
+              No CSR initiatives registered yet.
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   if (!departments || departments.length === 0 || !emissionFactors || emissionFactors.length === 0) {
     return (
       <div className="flex items-center justify-center p-12 glass-panel rounded-2xl">
@@ -343,6 +460,10 @@ export default function Dashboard({
               </table>
             </div>
           </div>
+
+          <div className="pt-2">
+            <CsrQuickWidget />
+          </div>
         </div>
       )}
 
@@ -534,6 +655,10 @@ export default function Dashboard({
                 </tbody>
               </table>
             </div>
+          </div>
+
+          <div className="pt-2">
+            <CsrQuickWidget />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -842,6 +967,10 @@ export default function Dashboard({
               })}
             </div>
           </div>
+
+          <div className="pt-2">
+            <CsrQuickWidget />
+          </div>
         </div>
       )}
 
@@ -1049,6 +1178,9 @@ export default function Dashboard({
             </div>
           </div>
 
+          <div className="pt-6">
+            <CsrQuickWidget />
+          </div>
         </div>
       )}
     </div>

@@ -21,3 +21,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Database and Environment Secrets
+db.sqlite
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+

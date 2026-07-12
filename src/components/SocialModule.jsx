@@ -9,6 +9,8 @@ export default function SocialModule({
   approveCsrActivity,
   joinCsrActivity,
   currentUser,
+  currentRole,
+  uploadCsrEvidence,
   settings,
   triggerNotification
 }) {
@@ -54,12 +56,12 @@ export default function SocialModule({
     setShowAddCsr(false);
   };
 
-  // Mock file upload handler
+  // Real file upload handler
   const handleFileUpload = (e, activityId) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Check size or type (mock validation)
+    // Check size or type
     const validTypes = ['image/jpeg', 'image/png', 'application/pdf'];
     if (!validTypes.includes(file.type)) {
       setUploadError('Invalid file type! Only JPG, PNG, and PDF are allowed.');
@@ -67,21 +69,9 @@ export default function SocialModule({
     }
     setUploadError('');
 
-    // Simulate upload delay
-    setTimeout(() => {
-      setUploadedFiles(prev => ({
-        ...prev,
-        [activityId]: file.name
-      }));
-      // Update the activity's evidence state locally
-      const act = csrActivities.find(c => c.id === activityId);
-      if (act) {
-        act.evidenceFileAttached = true;
-        act.evidenceFileName = file.name;
-      }
-      setUploadingId(null);
-      triggerNotification('csr', 'Evidence Uploaded', `Uploaded '${file.name}' for ${act?.title}.`);
-    }, 800);
+    // Save evidence details to server
+    uploadCsrEvidence(activityId, file.name);
+    setUploadingId(null);
   };
 
   return (
@@ -330,7 +320,7 @@ export default function SocialModule({
                     )}
 
                     {/* Admin Approval Button */}
-                    {act.status === 'Pending' && (
+                    {act.status === 'Pending' && (currentRole === 'Admin' || currentRole === 'Manager') && (
                       <div className="flex items-center gap-1.5">
                         {approvalBlocked && (
                           <span className="text-[9px] text-rose-500 dark:text-rose-400 font-bold max-w-[120px] text-right leading-3">

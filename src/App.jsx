@@ -114,7 +114,14 @@ export default function App() {
       setBadges(res.db.badges);
       setRewards(res.db.rewards);
       setCarbonTransactions(res.db.carbonTransactions);
-      setCsrActivities(res.db.csrActivities);
+      // Parse participants string to array for frontend
+      const parsedCsr = (res.db.csrActivities || []).map(act => ({
+        ...act,
+        participants: typeof act.participants === 'string'
+          ? (act.participants ? act.participants.split(',').map(p => p.trim()) : [])
+          : (Array.isArray(act.participants) ? act.participants : [])
+      }));
+      setCsrActivities(parsedCsr);
       setChallenges(res.db.challenges);
       setComplianceIssues(res.db.complianceIssues);
       setPolicyAcknowledgements(res.db.policyAcknowledgements);
@@ -248,6 +255,18 @@ export default function App() {
     }
   };
 
+  const uploadCsrEvidence = async (activityId, fileName) => {
+    try {
+      const res = await api.uploadCsrEvidence(currentUser, currentRole, activityId, fileName);
+      if (res.success) {
+        addToast('success', 'Evidence Saved', 'Verification documents successfully attached.');
+        fetchBackendData();
+      }
+    } catch (e) {
+      addToast('error', 'Upload Failed', e.message);
+    }
+  };
+
   // 4. GOVERNANCE
   const addComplianceIssue = async (issue) => {
     try {
@@ -340,6 +359,7 @@ export default function App() {
       case 'Admin':
         return [
           { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+          { id: 'social', label: 'CSR Activities', icon: Users },
           { id: 'departments', label: 'Departments Manager', icon: Building2 },
           { id: 'users', label: 'User Directory', icon: Users },
           { id: 'profile', label: 'User Profile', icon: User },
@@ -357,6 +377,7 @@ export default function App() {
       case 'Compliance Officer':
         return [
           { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+          { id: 'social', label: 'CSR Activities', icon: Users },
           { id: 'governance', label: 'Compliance Hub', icon: ShieldAlert },
           { id: 'ledger', label: 'Audit Ledger', icon: History },
           { id: 'profile', label: 'User Profile', icon: User },
@@ -569,6 +590,10 @@ export default function App() {
               auditLogs={auditLogs}
               complianceIssues={complianceIssues}
               databaseDriver={databaseDriver}
+              csrActivities={csrActivities}
+              approveCsrActivity={approveCsrActivity}
+              joinCsrActivity={joinCsrActivity}
+              setActiveTab={setActiveTab}
             />
           )}
 
@@ -611,6 +636,8 @@ export default function App() {
               approveCsrActivity={approveCsrActivity}
               joinCsrActivity={joinCsrActivity}
               currentUser={currentUser}
+              currentRole={currentRole}
+              uploadCsrEvidence={uploadCsrEvidence}
               settings={settings}
               triggerNotification={triggerNotification}
             />

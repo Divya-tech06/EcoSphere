@@ -188,6 +188,18 @@ export const api = {
     return data;
   },
 
+  // Upload proof/evidence for CSR activity
+  async uploadCsrEvidence(username, role, activityId, fileName) {
+    const res = await fetch(`${BASE_URL}/csr/evidence`, {
+      method: 'POST',
+      headers: getHeaders(username, role),
+      body: JSON.stringify({ activityId, fileName })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to upload CSR evidence');
+    return data;
+  },
+
   // Report compliance issue
   async reportCompliance(username, role, issue) {
     const res = await fetch(`${BASE_URL}/compliance`, {
